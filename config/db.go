@@ -1,8 +1,7 @@
-package dataLayer
+package config
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -14,11 +13,11 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-func initDataLayer() {
+func Connect() {
 	// DB config
 	mongoUri, ok := os.LookupEnv("MONGODBURI")
 	if ok != true {
-		fmt.Println("error: unable to find uri in the environment")
+		log.Fatal("error: unable to find uri in the environment")
 	}
 	client, err := mongo.NewClient(options.Client().ApplyURI(mongoUri))
 	if err != nil {
@@ -33,7 +32,7 @@ func initDataLayer() {
 	}
 
 	//To close the connection at the end
-	defer cancel()
+	defer client.Disconnect(ctx)
 
 	err = client.Ping(ctx, readpref.Primary())
 	if err != nil {
