@@ -9,9 +9,11 @@ import (
 // Define salt size
 const saltSize = 16
 
-// Generate 16 bytes randomly and securely using the
-// Cryptographically secure pseudorandom number generator (CSPRNG)
-// in the crypto.rand package
+/*
+Generate 16 bytes randomly and securely using the
+Cryptographically secure pseudorandom number generator (CSPRNG)
+in the crypto.rand package
+*/
 func GenerateRandomSalt(saltSize int) []byte {
 	var salt = make([]byte, saltSize)
 
@@ -24,9 +26,11 @@ func GenerateRandomSalt(saltSize int) []byte {
 	return salt
 }
 
-// Combine password and salt then hash them using the SHA-512
-// hashing algorithm and then return the hashed password
-// as a base64 encoded string
+/*
+Combine password and salt then hash them using the SHA-512
+hashing algorithm and then return the hashed password
+as a base64 encoded string
+*/
 func HashPassword(password string, salt []byte) string {
 	// Convert password string into bbyte slice
 	var passwordBytes = []byte(password)

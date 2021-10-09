@@ -25,15 +25,16 @@ func Connect() {
 	}
 
 	// Set up context required by mongo.Connect
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	err = client.Connect(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	//To close the connection at the end
-	defer client.Disconnect(ctx)
+	defer cancel()
 
+	// Verifying connection is successful
 	err = client.Ping(ctx, readpref.Primary())
 	if err != nil {
 		log.Fatal(err)
@@ -41,6 +42,7 @@ func Connect() {
 		log.Println("Connected to MongoDB!")
 	}
 
+	// Passing database to services
 	db := client.Database("appData")
 	users.UserCollection(db)
 	posts.PostCollection(db)

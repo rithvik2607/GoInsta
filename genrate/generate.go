@@ -3,17 +3,27 @@ package generate
 import (
 	"math/rand"
 	"strings"
+	"time"
 )
 
+/*
+GenId - generates a random string from lowercase
+alphabets and numbers seeding is done using time
+to create a unique ID each time
+*/
 func GenId() string {
-	// using only lowercase characters
-	charSet := "abcdefghijklmnopqrstuvxyz"
-	var output strings.Builder
-	length := 16
+	rand.Seed(time.Now().UnixNano())
+	chars := []rune("abcdefghijklmnopqrstuvwxyz" +
+		"0123456789")
+
+	// Set the size of ID to 8
+	length := 8
+	var b strings.Builder
 	for i := 0; i < length; i++ {
-		random := rand.Intn(len(charSet))
-		randomChar := charSet[random]
-		output.WriteString(string(randomChar))
+		b.WriteRune(chars[rand.Intn(len(chars))])
 	}
-	return output.String()
+
+	// Convert string builder object to string
+	str := b.String()
+	return str
 }

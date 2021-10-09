@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 
 	generate "github.com/rithvik2607/GoInsta/genrate"
@@ -16,16 +15,16 @@ import (
 )
 
 type User struct {
-	id       string `json:"id"`
-	name     string `json:"name"`
-	email    string `json:"email"`
-	password string `json:"password"`
+	Id       string `bson:"id" json:"id"`
+	Name     string `bson:"name" json:"name"`
+	Email    string `bson:"email" json:"email"`
+	Password string `bson:"password" json:"password"`
 }
 
 type UserInfo struct {
-	name     string `json:"name"`
-	email    string `json:"email"`
-	password string `json:"password"`
+	Name     string `bson:"name" json:"name"`
+	Email    string `bson:"email" json:"email"`
+	Password string `bson:"password" json:"password"`
 }
 
 // Database instance
@@ -35,7 +34,12 @@ func UserCollection(c *mongo.Database) {
 	collection = c.Collection("users")
 }
 
+/*
+GetUser - collects users from DB and matches ID
+ of users with the ID given in the link
+*/
 func GetUser(w http.ResponseWriter, r *http.Request) {
+	// Split the URL to obtain the ID, store it in userId
 	p := strings.Split(r.URL.Path, "/")
 	var userId string
 	if len(p) <= 1 {
@@ -43,11 +47,12 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	} else {
-		userId = strconv.Quote(p[2])
+		userId = p[2]
 	}
 
-	user := User{}
-	err := collection.FindOne(context.TODO(), bson.M{"id": userId}).Decode(&user)
+	// Initialize users array and collect users from DB
+	users := []User{}
+	cursor, err := collection.Find(context.TODO(), bson.D{{}})
 	if err != nil {
 		log.Fatal(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -55,7 +60,17 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jsonBytes, err := json.Marshal(user)
+	// Iterate through users and match ID with userId
+	for cursor.Next(context.TODO()) {
+		var user User
+		cursor.Decode(&user)
+		if user.Id == userId {
+			users = append(users, user)
+		}
+	}
+
+	// Convert the result to JSON
+	jsonBytes, err := json.Marshal(users)
 	if err != nil {
 		log.Fatal(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -63,6 +78,7 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Structure the response
 	w.Header().Add("content-type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(jsonBytes)
@@ -70,9 +86,16 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+/*
+CreateUser - receives data in JSON format,
+creates ID, hashes password and creates User object.
+User object is then converted to JSON and added to DB
+*/
 func CreateUser(w http.ResponseWriter, r *http.Request) {
+	// Create UserInfo object
 	var user UserInfo
 
+	// Decode the input JSON and match it with UserInfo struct
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		log.Fatal(err)
@@ -81,23 +104,27 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Retrieve salt from environment variables
 	salt, ok := os.LookupEnv("salt")
 	if ok != true {
 		log.Fatal("error: unable to find uri in the environment")
 	}
+
+	// Generate ID and hashed password
 	Id := generate.GenId()
 	newSalt := []byte(salt)
-	user.password = hashing.HashPassword(user.password, newSalt)
+	user.Password = hashing.HashPassword(user.Password, newSalt)
 
+	// Create User object, name it newUser
 	newUser := User{
-		id:       Id,
-		name:     user.name,
-		email:    user.email,
-		password: user.password,
+		Id:       Id,
+		Name:     user.Name,
+		Email:    user.Email,
+		Password: user.Password,
 	}
 
+	// Insert newUser into DB
 	res, err := collection.InsertOne(context.TODO(), newUser)
-
 	if err != nil {
 		log.Fatal(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -105,7 +132,10 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jsonBytes, err := json.Marshal(res)
+	log.Println(res) // Handling response from Mongo driver
+
+	// Convert newUser to JSON
+	jsonBytes, err := json.Marshal(newUser)
 	if err != nil {
 		log.Fatal(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -113,6 +143,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Structure the response
 	w.Header().Add("content-type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(jsonBytes)
