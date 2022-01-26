@@ -1,6 +1,6 @@
 # GoInsta
 
-This is the repository for a simple Instagram API clone built using Go. This API has been made as a submission to the Appointy Internship task.
+This is the repository for a simple Instagram API clone built using Go.
 
 ## Run the server on your computer
 
